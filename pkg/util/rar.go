@@ -2,13 +2,12 @@ package util
 
 import (
 	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
 	"io"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"strings"
-
-	"git.thunisoft.com/research/cloud/caas/volume-explorer/server/logger"
 )
 
 // TODO ierr         发送所有压缩文档到 stderr
@@ -73,7 +72,7 @@ func RarDecompress(rarFile, dest string, progressReceiver ...io.Writer) error {
 }
 
 func rarC(rarFile string, files []string, progressReceiver ...io.Writer) error {
-	dir := GetAppDir()
+	dir := Pwd()
 	rarC := filepath.Join(dir, "tools", "rar-compress", "rar-c")
 
 	output, err := exec.Command(rarC, append([]string{rarFile}, files...)...).CombinedOutput()
@@ -82,22 +81,21 @@ func rarC(rarFile string, files []string, progressReceiver ...io.Writer) error {
 		return err
 	}
 	out := string(output)
-	logger.Info(out)
-
+	logrus.Debug(out)
 	return nil
 }
 
 func rarX(rarFile, dest string, progressReceiver ...io.Writer) error {
-	dir := GetAppDir()
+	dir := Pwd()
 	rarX := filepath.Join(dir, "tools", "rar-compress", "rar-x")
 	if !strings.HasSuffix(dest, string(filepath.Separator)) {
 		dest += string(filepath.Separator)
 	}
-	logger.Debug(rarX, rarFile, dest)
+	logrus.Debug(rarX, rarFile, dest)
 	output, err := exec.Command(rarX, rarFile, dest).CombinedOutput()
 	out := string(output)
 	// TODO 反馈解压进度
-	logger.Info(out)
+	logrus.Info(out)
 	if err != nil {
 		return errors.WithStack(err)
 	}
