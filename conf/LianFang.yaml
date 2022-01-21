@@ -1,0 +1,3 @@
+LianFangDebug: false
+# 日志等级，  支持 debug  info  warn  error
+LogLevel: info

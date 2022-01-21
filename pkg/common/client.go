@@ -4,7 +4,7 @@
 @File : stats
 @description:
 */
-package client
+package common
 
 import (
 	"github.com/docker/docker/client"
@@ -17,7 +17,7 @@ var (
 	dockerClientOnce sync.Once
 )
 
-func GetDockerClient() *client.Client {
+func DockerClient() *client.Client {
 	dockerClientOnce.Do(func() {
 		var err error
 		dockerClient, err = client.NewClientWithOpts(client.FromEnv, client.WithAPIVersionNegotiation())

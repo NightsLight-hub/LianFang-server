@@ -9,11 +9,14 @@ package main
 import (
 	"fmt"
 	"github.com/gin-gonic/gin"
+	"github.com/sxy/lianfang/pkg/common"
 	"github.com/sxy/lianfang/pkg/router"
 	"net/http"
 )
 
 func main() {
+	common.SetupConfig()
+	common.SetupLogger()
 	msgChan := make(chan error)
 	go startV1HttpRouter(msgChan)
 	fmt.Println("This is LianFang--联坊")
@@ -22,7 +25,7 @@ func main() {
 
 func startV1HttpRouter(ch chan error) {
 	r := gin.Default()
-	v1 := r.Group("v1")
+	v1 := r.Group("/api/v1")
 	v1.Use(Cors())
 	router.SetupDefaultRouter(v1)
 	router.SetupContainersRouter(v1)
