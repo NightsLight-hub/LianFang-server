@@ -8,15 +8,18 @@ package main
 
 import (
 	"fmt"
+	"net/http"
+
 	"github.com/gin-gonic/gin"
+	"github.com/sirupsen/logrus"
 	"github.com/sxy/lianfang/pkg/common"
 	"github.com/sxy/lianfang/pkg/router"
-	"net/http"
 )
 
 func main() {
 	common.SetupConfig()
 	common.SetupLogger()
+	common.SetupCache()
 	msgChan := make(chan error)
 	go startV1HttpRouter(msgChan)
 	fmt.Println("This is LianFang--联坊")
@@ -25,6 +28,7 @@ func main() {
 
 func startV1HttpRouter(ch chan error) {
 	r := gin.Default()
+	gin.DefaultWriter = logrus.StandardLogger().Writer()
 	v1 := r.Group("/api/v1")
 	v1.Use(Cors())
 	router.SetupDefaultRouter(v1)

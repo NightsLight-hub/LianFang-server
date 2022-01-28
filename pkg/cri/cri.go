@@ -10,10 +10,12 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"github.com/docker/docker/pkg/stdcopy"
 	"github.com/sirupsen/logrus"
 	"github.com/sxy/lianfang/pkg/common"
 	"github.com/sxy/lianfang/pkg/cri/docker"
 	"github.com/sxy/lianfang/pkg/util"
+	"io"
 	"path/filepath"
 	"strings"
 	"time"
@@ -23,8 +25,8 @@ import (
 )
 
 var (
-	K8SOperationTimeout = 60 * time.Second
-	cacheExpireTime     = 5 * time.Second
+	DockerOpertaionTimeout = 60 * time.Second
+	cacheExpireTime        = 5 * time.Second
 )
 
 const (
@@ -197,6 +199,70 @@ func ValidContainer(containerId string) (err error) {
 		return util.ResourceNotExistError{Msg: fmt.Sprintf("container %s not found", containerId)}
 	}
 	return nil
+}
+
+func Start(containerId string) (err error) {
+	err = nil
+	err = common.DockerClient().ContainerStart(context.Background(), containerId, types.ContainerStartOptions{})
+	if err != nil {
+		logrus.Error(errors.WithStack(err))
+		return util.ResourceNotExistError{Msg: fmt.Sprintf("container %s start failed, err is %s", containerId, err.Error())}
+	}
+	return nil
+}
+
+func Stop(containerId string) (err error) {
+	err = common.DockerClient().ContainerStop(context.Background(), containerId, &DockerOpertaionTimeout)
+	if err != nil {
+		logrus.Error(errors.WithStack(err))
+		return util.ResourceNotExistError{Msg: fmt.Sprintf("container %s stop failed, err is %s", containerId, err.Error())}
+	}
+	return nil
+}
+
+func DownloadLog(containerId string) (io.ReadCloser, error) {
+	opt := types.ContainerLogsOptions{
+		ShowStdout: true,
+		ShowStderr: true,
+		Since:      "",
+		Until:      "",
+		Timestamps: true,
+		Follow:     false,
+		Tail:       "all",
+		Details:    false,
+	}
+	r, err := common.DockerClient().ContainerLogs(context.Background(), containerId, opt)
+	if err != nil {
+		logrus.Error(errors.WithStack(err))
+		return nil, errors.Wrapf(err, fmt.Sprintf("get container %s logs failed", containerId))
+	}
+	return r, nil
+}
+
+func Logs(containerId, lines string) (string, error) {
+	opt := types.ContainerLogsOptions{
+		ShowStdout: true,
+		ShowStderr: true,
+		Since:      "",
+		Until:      "",
+		Timestamps: false,
+		Follow:     false,
+		Tail:       lines,
+		Details:    false,
+	}
+	r, err := common.DockerClient().ContainerLogs(context.Background(), containerId, opt)
+	if err != nil {
+		logrus.Error(errors.WithStack(err))
+		return "", errors.Wrapf(err, fmt.Sprintf("get container %s logs failed", containerId))
+	}
+	var logB bytes.Buffer
+	_, err = stdcopy.StdCopy(&logB, &logB, r)
+	if err != nil {
+		logrus.Error(errors.WithStack(err))
+		return "", errors.Wrapf(err, fmt.Sprintf("read container %s logs failed", containerId))
+	}
+	logrus.Debugf("%s", logB.String())
+	return logB.String(), nil
 }
 
 func GetContainerFileInfo(containerId, path string) (*types.ContainerPathStat, error) {

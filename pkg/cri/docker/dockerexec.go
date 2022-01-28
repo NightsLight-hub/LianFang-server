@@ -15,6 +15,7 @@ import (
 	"github.com/docker/docker/pkg/stdcopy"
 	"github.com/docker/docker/pkg/system"
 	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
 	"github.com/sxy/lianfang/pkg/common"
 	"io"
 	"os"
@@ -58,7 +59,7 @@ func Exec(containerID string, command []string) (outPut, errOutput string, err e
 	}
 	outPut = strings.TrimSpace(outStream.String())
 	errOutput = strings.TrimSpace(errStream.String())
-	logger.Debug("container [ %s ], command %v, result: \n %s \n errout: \n %s \n", containerID, command, outPut, errOutput)
+	logrus.Debugf("container [ %s ], command %v, result: \n %s \n errout: \n %s \n", containerID, command, outPut, errOutput)
 	return
 }
 

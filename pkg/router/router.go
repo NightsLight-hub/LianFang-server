@@ -1,4 +1,5 @@
 /*
+Package router
 @Time : 2021/12/21 14:41
 @Author : sunxy
 @File : router
@@ -8,6 +9,13 @@ package router
 
 import (
 	"fmt"
+	"github.com/docker/docker/pkg/stdcopy"
+	"net/url"
+	"os"
+	"path/filepath"
+	"strconv"
+	"strings"
+
 	"github.com/docker/docker/pkg/archive"
 	"github.com/docker/docker/pkg/system"
 	"github.com/gin-gonic/gin"
@@ -18,11 +26,6 @@ import (
 	"github.com/sxy/lianfang/pkg/models"
 	"github.com/sxy/lianfang/pkg/parser"
 	"github.com/sxy/lianfang/pkg/util"
-	"net/url"
-	"os"
-	"path/filepath"
-	"strconv"
-	"strings"
 
 	"net/http"
 )
@@ -39,6 +42,11 @@ func SetupContainersRouter(engine *gin.RouterGroup) {
 	engine.GET("/containers", getContainers)
 	engine.GET("/container/:cid/stats", getContainerStats)
 	engine.GET("/container/show/:cid/*path", containerFsShow)
+	engine.GET("/container/bind/:cid", containerBind)
+	engine.POST("/container/start/:cid", containerStart)
+	engine.POST("/container/stop/:cid", containerStop)
+	engine.GET("/container/logs/:cid", containerLogs)
+
 }
 
 func getContainers(c *gin.Context) {
@@ -148,6 +156,111 @@ func containerFsShow(c *gin.Context) {
 		}
 		c.JSON(http.StatusOK, response)
 		return
+	}
+}
+
+func containerBind(c *gin.Context) {
+	cid := c.Param("cid")
+	logrus.Debugf("in container bind, %s", cid)
+	err := cri.ValidContainer(cid)
+	if err != nil {
+		if util.IsResourceNotExistError(err) {
+			c.AbortWithStatusJSON(http.StatusNotFound, ErrResponse{Msg: err.Error()})
+		}
+		logrus.Error("%+v", err)
+		c.AbortWithStatusJSON(http.StatusInternalServerError, ErrResponse{Msg: err.Error()})
+	}
+	c.String(http.StatusOK, "ok")
+}
+
+func containerStart(c *gin.Context) {
+	cid := c.Param("cid")
+	logrus.Debugf("in container start, %s", cid)
+	err := cri.ValidContainer(cid)
+	if err != nil {
+		if util.IsResourceNotExistError(err) {
+			c.AbortWithStatusJSON(http.StatusNotFound, ErrResponse{Msg: err.Error()})
+		}
+		logrus.Error("%+v", err)
+		c.AbortWithStatusJSON(http.StatusInternalServerError, ErrResponse{Msg: err.Error()})
+	}
+	err = cri.Start(cid)
+	if err != nil {
+		logrus.Error("%+v", err)
+		c.AbortWithStatusJSON(http.StatusInternalServerError, ErrResponse{Msg: err.Error()})
+	}
+	c.String(http.StatusOK, "ok")
+}
+
+func containerStop(c *gin.Context) {
+	cid := c.Param("cid")
+	logrus.Debugf("in container stop, %s", cid)
+	err := cri.ValidContainer(cid)
+	if err != nil {
+		if util.IsResourceNotExistError(err) {
+			c.AbortWithStatusJSON(http.StatusNotFound, ErrResponse{Msg: err.Error()})
+		}
+		logrus.Error("%+v", err)
+		c.AbortWithStatusJSON(http.StatusInternalServerError, ErrResponse{Msg: err.Error()})
+	}
+	err = cri.Stop(cid)
+	if err != nil {
+		logrus.Error("%+v", err)
+		c.AbortWithStatusJSON(http.StatusInternalServerError, ErrResponse{Msg: err.Error()})
+	}
+	c.String(http.StatusOK, "ok")
+}
+
+func containerLogs(c *gin.Context) {
+	cid := c.Param("cid")
+	downloadFlag := false
+	var lines int64
+	lineQuery := c.DefaultQuery("lines", "1000")
+	if lineQuery == "all" {
+		downloadFlag = true
+	} else {
+		var err error
+		lines, err = strconv.ParseInt(lineQuery, 10, 32)
+		if err != nil {
+			c.AbortWithStatusJSON(http.StatusBadRequest, errors.New("lines must be uint32 value!"))
+		}
+	}
+	logrus.Debugf("in container logs, %s", cid)
+	err := cri.ValidContainer(cid)
+	if err != nil {
+		if util.IsResourceNotExistError(err) {
+			c.AbortWithStatusJSON(http.StatusNotFound, ErrResponse{Msg: err.Error()})
+		}
+		logrus.Error("%+v", err)
+		c.AbortWithStatusJSON(http.StatusInternalServerError, ErrResponse{Msg: err.Error()})
+	}
+	if downloadFlag {
+		r, err := cri.DownloadLog(cid)
+		if err != nil {
+			logrus.Error("%+v", err)
+			c.AbortWithStatusJSON(http.StatusInternalServerError, ErrResponse{Msg: err.Error()})
+		}
+		defer r.Close()
+		c.Writer.Header().Set("Content-Type", "text/plain")
+		c.Writer.Header().Set("Content-Description", "File Transfer")
+		c.Writer.Header().Set("Content-Transfer-Encoding", "binary")
+		c.Writer.Header().Set("Expires", "0")
+		c.Writer.Header().Set("Cache-Control", "must-revalidate")
+		c.Writer.Header().Set("pragma", "public")
+		c.Writer.Header().Set("Content-Disposition", "attachment; filename="+cid+".log")
+		_, err = stdcopy.StdCopy(c.Writer, c.Writer, r)
+		if err != nil {
+			logrus.Error("%+v", err)
+			c.AbortWithStatusJSON(http.StatusInternalServerError, ErrResponse{Msg: err.Error()})
+		}
+		return
+	} else {
+		msg, err := cri.Logs(cid, fmt.Sprintf("%d", lines))
+		if err != nil {
+			logrus.Error("%+v", err)
+			c.AbortWithStatusJSON(http.StatusInternalServerError, ErrResponse{Msg: err.Error()})
+		}
+		c.String(http.StatusOK, msg)
 	}
 }
 
