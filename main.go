@@ -8,18 +8,18 @@ package main
 
 import (
 	"fmt"
+	"github.com/sxy/lianfang/pkg/common"
+	"github.com/sxy/lianfang/pkg/store"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
 	"github.com/sirupsen/logrus"
-	"github.com/sxy/lianfang/pkg/common"
 	"github.com/sxy/lianfang/pkg/router"
 )
 
 func main() {
-	common.SetupConfig()
-	common.SetupLogger()
-	common.SetupCache()
+	common.Setup()
+	store.Setup()
 	msgChan := make(chan error)
 	go startV1HttpRouter(msgChan)
 	fmt.Println("This is LianFang--联坊")
@@ -47,7 +47,7 @@ func Cors() gin.HandlerFunc {
 		c.Header("Access-Control-Expose-Headers", "Content-Length, Access-Control-Allow-Origin, Access-Control-Allow-Headers, Content-Type")
 		c.Header("Access-Control-Allow-Credentials", "true")
 
-		//放行所有OPTIONS方法
+		// 放行所有OPTIONS方法
 		if method == "OPTIONS" {
 			c.AbortWithStatus(http.StatusNoContent)
 		}

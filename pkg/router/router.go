@@ -10,6 +10,7 @@ package router
 import (
 	"fmt"
 	"github.com/docker/docker/pkg/stdcopy"
+	"github.com/sxy/lianfang/pkg/store"
 	"net/url"
 	"os"
 	"path/filepath"
@@ -22,7 +23,6 @@ import (
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"github.com/sxy/lianfang/pkg/cri"
-	"github.com/sxy/lianfang/pkg/handler/containers"
 	"github.com/sxy/lianfang/pkg/models"
 	"github.com/sxy/lianfang/pkg/parser"
 	"github.com/sxy/lianfang/pkg/util"
@@ -50,9 +50,8 @@ func SetupContainersRouter(engine *gin.RouterGroup) {
 }
 
 func getContainers(c *gin.Context) {
-	cs, err := containers.GetService().List()
+	cs, err := store.GetService().GetContainerList()
 	if err != nil {
-
 		errResp := new(ErrResponse)
 		errResp.Msg = err.Error()
 		c.JSON(http.StatusInternalServerError, gin.H{
@@ -65,7 +64,7 @@ func getContainers(c *gin.Context) {
 
 func getContainerStats(c *gin.Context) {
 	cid := c.Param("cid")
-	sts, err := containers.GetService().Stats(cid)
+	sts, err := store.GetService().GetContainerStats(cid)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"message": "Server Error",

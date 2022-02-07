@@ -14,6 +14,8 @@ require (
 	github.com/pkg/errors v0.9.1
 	github.com/sirupsen/logrus v1.8.1
 	github.com/spf13/viper v1.10.1
+	github.com/xujiajun/nutsdb v0.6.0 // indirect
 	golang.org/x/net v0.0.0-20220114011407-0dd24b26b47d
+	golang.org/x/sys v0.0.0-20220114195835-da31bd327af9 // indirect
 	gopkg.in/natefinch/lumberjack.v2 v2.0.0
 )

@@ -14,6 +14,7 @@ import (
 	"github.com/sirupsen/logrus"
 	"github.com/sxy/lianfang/pkg/common"
 	"github.com/sxy/lianfang/pkg/cri/docker"
+	"github.com/sxy/lianfang/pkg/store"
 	"github.com/sxy/lianfang/pkg/util"
 	"io"
 	"path/filepath"
@@ -193,12 +194,13 @@ func UnCompress(cid, path, dest, format string) error {
 }
 
 func ValidContainer(containerId string) (err error) {
-	_, err = common.DockerClient().ContainerInspect(context.Background(), containerId)
-	if err != nil {
-		logrus.Error(errors.WithStack(err))
-		return util.ResourceNotExistError{Msg: fmt.Sprintf("container %s not found", containerId)}
+	cs, err := store.GetService().GetContainerList()
+	for _, c := range cs {
+		if c.ID == containerId {
+			return nil
+		}
 	}
-	return nil
+	return util.ResourceNotExistError{Msg: fmt.Sprintf("container %s not found", containerId)}
 }
 
 func Start(containerId string) (err error) {

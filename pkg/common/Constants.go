@@ -10,3 +10,7 @@ package common
 const (
 	EnvLianFangDebug = "LianFangDebug"
 )
+
+const (
+	StatsSeparate = ":-:"
+)

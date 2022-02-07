@@ -37,16 +37,22 @@ func SetupConfig() {
 	}
 	Cfg.LianFangDebug = viper.GetBool("LianFangDebug")
 	Cfg.LogLevel = viper.GetString("LogLevel")
+	Cfg.NutsDir = viper.GetString("NutsDir")
+	Cfg.UpdateInterval = viper.GetInt("UpdateInterval")
 }
 
 type Config struct {
-	LianFangDebug bool   `json:"LianFangDebug"`
-	LogLevel      string `json:"LogLevel"`
+	LianFangDebug  bool   `json:"LianFangDebug"`
+	LogLevel       string `json:"LogLevel"`
+	NutsDir        string `json:"NutsDir"`
+	UpdateInterval int    `json:"UpdateInterval"`
 }
 
 func DefaultConfig() *Config {
 	return &Config{
-		LianFangDebug: false,
-		LogLevel:      "debug",
+		LianFangDebug:  false,
+		LogLevel:       "debug",
+		NutsDir:        "./store",
+		UpdateInterval: 3,
 	}
 }
