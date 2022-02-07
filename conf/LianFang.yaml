@@ -5,3 +5,5 @@ LogLevel: info
 NutsDir: ./store
 # update interval (second)
 UpdateInterval: 3
+# Container gracefully stop timeout (second)
+ContainerStopTimeout: 10

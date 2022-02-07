@@ -18,6 +18,7 @@ import (
 	"github.com/sxy/lianfang/pkg/common"
 	"github.com/xujiajun/nutsdb"
 	"io"
+	"os"
 	"sync"
 	"time"
 )
@@ -55,8 +56,12 @@ type Service struct {
 }
 
 func (s *Service) Start() {
+	err := s.put(s.containerBucket, []byte("initSetUp"), []byte("initSetUp"))
+	if err != nil {
+		logrus.Errorf("init store service failed, program exit ...")
+		os.Exit(1)
+	}
 	d := time.Second * time.Duration(common.Cfg.UpdateInterval)
-
 	t := time.NewTicker(d)
 	defer t.Stop()
 	for {
@@ -93,6 +98,9 @@ func (s Service) get(bucket string, key []byte) (ret []byte, err error) {
 	err = s.nutsDBHandler.View(
 		func(tx *nutsdb.Tx) error {
 			if e, err := tx.Get(bucket, key); err != nil {
+				if err == nutsdb.ErrNotFoundKey {
+					return nil
+				}
 				return err
 			} else {
 				ret = e.Value
@@ -165,29 +173,29 @@ func (s *Service) updateContainerList() error {
 	if err != nil {
 		return errors.Wrapf(err, "list container failed")
 	}
-	for _, c := range cs {
-		ret, err := s.get(s.OpBucket, []byte(c.ID))
-		if err != nil {
-			if err != nutsdb.ErrNotFoundKey {
-				return errors.WithStack(err)
-			}
-		}
-		// 如果有针对此容器的操作正在进行，更新其状态
-		// todo 容器状态有多种，此处处理不完善
-		if c.State == "exited" && "stop" == string(ret) {
-			err := s.delete(s.OpBucket, []byte(c.ID))
-			if err != nil {
-				return errors.WithStack(err)
-			}
-		} else if c.State == "running" && "start" == string(ret) {
-			err := s.delete(s.OpBucket, []byte(c.ID))
-			if err != nil {
-				return errors.WithStack(err)
-			}
-		} else {
-			c.State = string(ret) + "ing"
-		}
-	}
+	// for _, c := range cs {
+	// 	ret, err := s.get(s.OpBucket, []byte(c.ID))
+	// 	if err != nil {
+	// 		if err != nutsdb.ErrNotFoundKey {
+	// 			return errors.WithStack(err)
+	// 		}
+	// 	}
+	// 如果有针对此容器的操作正在进行，更新其状态
+	// todo 容器状态有多种，此处处理不完善
+	// if c.State == "exited" && "stop" == string(ret) {
+	// 	err := s.delete(s.OpBucket, []byte(c.ID))
+	// 	if err != nil {
+	// 		return errors.WithStack(err)
+	// 	}
+	// } else if c.State == "running" && "start" == string(ret) {
+	// 	err := s.delete(s.OpBucket, []byte(c.ID))
+	// 	if err != nil {
+	// 		return errors.WithStack(err)
+	// 	}
+	// } else {
+	// 	c.State = string(ret) + "ing"
+	// }
+	// }
 	csbs, err := json.Marshal(cs)
 	if err != nil {
 		return errors.Wrapf(err, "list container failed")

@@ -26,8 +26,7 @@ import (
 )
 
 var (
-	DockerOpertaionTimeout = 60 * time.Second
-	cacheExpireTime        = 5 * time.Second
+	cacheExpireTime = 5 * time.Second
 )
 
 const (
@@ -214,7 +213,8 @@ func Start(containerId string) (err error) {
 }
 
 func Stop(containerId string) (err error) {
-	err = common.DockerClient().ContainerStop(context.Background(), containerId, &DockerOpertaionTimeout)
+	stopTimeout := time.Duration(common.Cfg.ContainerStopTimeout) * time.Second
+	err = common.DockerClient().ContainerStop(context.Background(), containerId, &stopTimeout)
 	if err != nil {
 		logrus.Error(errors.WithStack(err))
 		return util.ResourceNotExistError{Msg: fmt.Sprintf("container %s stop failed, err is %s", containerId, err.Error())}
