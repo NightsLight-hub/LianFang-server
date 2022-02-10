@@ -16,10 +16,11 @@ import (
 	"github.com/sirupsen/logrus"
 	"github.com/sxy/lianfang/pkg/common"
 	"github.com/sxy/lianfang/pkg/cri"
-	"github.com/sxy/lianfang/pkg/util"
 	"io"
 	"net/http"
 )
+
+const keyMsg string = "LianFangSshChannelPrepareFinished"
 
 func SetupWsRouter(engine *gin.RouterGroup) {
 	engine.GET("/container/ssh/:cid", containerSSH)
@@ -28,25 +29,28 @@ func SetupWsRouter(engine *gin.RouterGroup) {
 func containerSSH(c *gin.Context) {
 	cid := c.Param("cid")
 	logrus.Debugf("in container ssh, cid is %s", cid)
-	err := cri.ValidContainer(cid)
-	if err != nil {
-		if util.IsResourceNotExistError(err) {
-			c.AbortWithStatusJSON(http.StatusNotFound, ErrResponse{Msg: err.Error()})
-		}
-		logrus.Error("%+v", err)
-		c.AbortWithStatusJSON(http.StatusInternalServerError, ErrResponse{Msg: err.Error()})
-	}
-	logrus.Info("get /container/ssh ws connect")
 	conn, err := upgrader.Upgrade(c.Writer, c.Request, nil)
 	if err != nil {
-		logrus.Error(errors.WithStack(err))
+		logrus.Errorf("%+v", errors.WithStack(err))
 		c.AbortWithStatusJSON(http.StatusInternalServerError, ErrResponse{Msg: err.Error()})
 	}
 	defer conn.Close()
+	err = cri.ValidContainer(cid)
+	if err != nil {
+		conn.WriteMessage(websocket.TextMessage, []byte(err.Error()))
+		return
+	}
 	hr, err := exec(cid)
 	if err != nil {
-		logrus.Error("%+v", err)
-		c.AbortWithStatusJSON(http.StatusInternalServerError, ErrResponse{Msg: err.Error()})
+		logrus.Errorf("%+v", err)
+		conn.WriteMessage(websocket.TextMessage, []byte(err.Error()))
+		return
+	}
+
+	err = conn.WriteMessage(websocket.TextMessage, []byte(keyMsg))
+	if err != nil {
+		logrus.Errorf("%+v", errors.Wrap(err, "Send key msg to frontend failed"))
+		return
 	}
 	// 关闭I/O流
 	defer hr.Close()

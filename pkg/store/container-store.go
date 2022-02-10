@@ -64,16 +64,28 @@ func (s *Service) Start() {
 	d := time.Second * time.Duration(common.Cfg.UpdateInterval)
 	t := time.NewTicker(d)
 	defer t.Stop()
+	errCount := 0
 	for {
 		<-t.C
 		logrus.Debugf("service [%s] update", s.name)
 		err := s.updateContainerList()
 		if err != nil {
+			// 失败次数增加，跳过容器状态更新，因为容器列表都已经更新失败，状态旧没有必要更新了
+			errCount++
 			logrus.Errorf("%+v", err)
+		} else {
+			err = s.updateContainerStats()
+			if err != nil {
+				errCount++
+				logrus.Errorf("%+v", err)
+			} else {
+				// 如果容器列表与容器状态都更新成功，重置失败次数
+				errCount = 0
+			}
 		}
-		err = s.updateContainerStats()
-		if err != nil {
-			logrus.Errorf("%+v", err)
+		if errCount == 3 {
+			logrus.Errorf("定时刷新容器信息协程连续失败3次，程序退出")
+			os.Exit(1)
 		}
 	}
 }
