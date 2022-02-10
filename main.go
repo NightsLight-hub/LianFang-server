@@ -27,14 +27,27 @@ func main() {
 }
 
 func startV1HttpRouter(ch chan error) {
-	r := gin.Default()
+
+	r := ginEngine()
 	gin.DefaultWriter = logrus.StandardLogger().Writer()
 	v1 := r.Group("/api/v1")
 	v1.Use(Cors())
+	ws := r.Group("/ws")
+	ws.Use(Cors())
 	router.SetupDefaultRouter(v1)
 	router.SetupContainersRouter(v1)
+	router.SetupWsRouter(ws)
 
 	ch <- r.Run(":8081")
+}
+
+func ginEngine() *gin.Engine {
+	r := gin.New()
+	r.Use(gin.Recovery())
+	if common.Cfg.GinLog {
+		r.Use(gin.Logger())
+	}
+	return r
 }
 
 func Cors() gin.HandlerFunc {

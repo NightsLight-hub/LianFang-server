@@ -10,6 +10,7 @@ package router
 import (
 	"fmt"
 	"github.com/docker/docker/pkg/stdcopy"
+	"github.com/gorilla/websocket"
 	"github.com/sxy/lianfang/pkg/store"
 	"net/url"
 	"os"
@@ -38,6 +39,15 @@ const (
 	MaxFileReadSize = 2 << 20
 )
 
+var (
+	upgrader = websocket.Upgrader{
+		// 允许跨域
+		CheckOrigin: func(r *http.Request) bool {
+			return true
+		},
+	}
+)
+
 func SetupContainersRouter(engine *gin.RouterGroup) {
 	engine.GET("/containers", getContainers)
 	engine.GET("/container/:cid/stats", getContainerStats)
@@ -46,7 +56,6 @@ func SetupContainersRouter(engine *gin.RouterGroup) {
 	engine.POST("/container/start/:cid", containerStart)
 	engine.POST("/container/stop/:cid", containerStop)
 	engine.GET("/container/logs/:cid", containerLogs)
-
 }
 
 func getContainers(c *gin.Context) {

@@ -7,6 +7,7 @@ require (
 	github.com/docker/docker v20.10.12+incompatible
 	github.com/docker/go-connections v0.4.0 // indirect
 	github.com/gin-gonic/gin v1.7.7
+	github.com/gorilla/websocket v1.4.2 // indirect
 	github.com/moby/sys/mount v0.3.0 // indirect
 	github.com/morikuni/aec v1.0.0 // indirect
 	github.com/muesli/cache2go v0.0.0-20211005105910-8e46465cca4a

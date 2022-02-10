@@ -23,8 +23,9 @@ func SetupConfig() {
 	viper.SetConfigType("yaml")     // REQUIRED if the config file does not have the extension in the name
 	confPath := filepath.Join(util.Pwd(), "conf")
 	viper.AddConfigPath(confPath) // path to look for the config file in
-	err := viper.ReadInConfig()   // Find and read the config file
-	if err != nil {               // Handle errors reading the config file
+	viper.AddConfigPath("./conf")
+	err := viper.ReadInConfig() // Find and read the config file
+	if err != nil {             // Handle errors reading the config file
 		if _, ok := err.(viper.ConfigFileNotFoundError); ok {
 			// Config file not found; ignore error if desired
 			fmt.Printf("Can not find config file in %s", confPath)
@@ -40,6 +41,7 @@ func SetupConfig() {
 	Cfg.NutsDir = viper.GetString("NutsDir")
 	Cfg.UpdateInterval = viper.GetInt("UpdateInterval")
 	Cfg.ContainerStopTimeout = viper.GetInt64("ContainerStopTimeout")
+	Cfg.GinLog = viper.GetBool("GinLog")
 }
 
 type Config struct {
@@ -48,6 +50,7 @@ type Config struct {
 	NutsDir              string `json:"NutsDir"`
 	UpdateInterval       int    `json:"UpdateInterval"`
 	ContainerStopTimeout int64  `json:"ContainerStopTimeout"`
+	GinLog               bool   `json:"GinLog"`
 }
 
 func DefaultConfig() *Config {
