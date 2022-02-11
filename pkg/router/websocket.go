@@ -110,13 +110,16 @@ func wsWriterCopy(reader io.Reader, writer *websocket.Conn) {
 
 // 将前端的输入转发到终端
 func wsReaderCopy(reader *websocket.Conn, writer io.Writer) {
+	defer func() {
+		if r := recover(); r != nil {
+			logrus.Errorf("wsReade人Copy recovery %+v", r)
+		}
+	}()
 	for {
-		messageType, p, err := reader.ReadMessage()
+		_, p, err := reader.ReadMessage()
 		if err != nil {
 			return
 		}
-		if messageType == websocket.TextMessage {
-			writer.Write(p)
-		}
+		writer.Write(p)
 	}
 }

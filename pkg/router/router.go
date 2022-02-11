@@ -61,11 +61,7 @@ func SetupContainersRouter(engine *gin.RouterGroup) {
 func getContainers(c *gin.Context) {
 	cs, err := store.GetService().GetContainerList()
 	if err != nil {
-		errResp := new(ErrResponse)
-		errResp.Msg = err.Error()
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"message": "Server Error",
-		})
+		c.AbortWithStatusJSON(http.StatusInternalServerError, err.Error())
 	} else {
 		c.JSON(http.StatusOK, cs)
 	}
@@ -75,9 +71,7 @@ func getContainerStats(c *gin.Context) {
 	cid := c.Param("cid")
 	sts, err := store.GetService().GetContainerStats(cid)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"message": "Server Error",
-		})
+		c.AbortWithStatusJSON(http.StatusInternalServerError, err.Error())
 	} else {
 		c.String(http.StatusOK, string(sts))
 	}

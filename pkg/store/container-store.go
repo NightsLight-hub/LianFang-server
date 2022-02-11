@@ -56,6 +56,8 @@ type Service struct {
 }
 
 func (s *Service) Start() {
+	s.clean()
+	// 初始化后写一下，确保启动后写库没问题
 	err := s.put(s.containerBucket, []byte("initSetUp"), []byte("initSetUp"))
 	if err != nil {
 		logrus.Errorf("init store service failed, program exit ...")
@@ -88,6 +90,28 @@ func (s *Service) Start() {
 			os.Exit(1)
 		}
 	}
+}
+
+func (s *Service) clean() {
+	logrus.Infof("cleaning nutsdb...")
+	err := s.nutsDBHandler.Update(
+		func(tx *nutsdb.Tx) error {
+			entries, err := tx.GetAll(s.containerBucket)
+			if err != nil {
+				return err
+			}
+			for _, entry := range entries {
+				err := tx.Delete(s.containerBucket, entry.Key)
+				if err != nil {
+					logrus.Warnf("%+v", errors.Wrapf(err, "container-store clean key [%s] error", entry.Key))
+				}
+			}
+			return nil
+		})
+	if err != nil {
+		logrus.Warnf("%+v", errors.Wrap(err, "container-store clean error"))
+	}
+	logrus.Infof("clean nutsdb finished")
 }
 
 func (s *Service) put(bucket string, key, value []byte) error {
@@ -185,34 +209,11 @@ func (s *Service) updateContainerList() error {
 	if err != nil {
 		return errors.Wrapf(err, "list container failed")
 	}
-	// for _, c := range cs {
-	// 	ret, err := s.get(s.OpBucket, []byte(c.ID))
-	// 	if err != nil {
-	// 		if err != nutsdb.ErrNotFoundKey {
-	// 			return errors.WithStack(err)
-	// 		}
-	// 	}
-	// 如果有针对此容器的操作正在进行，更新其状态
-	// todo 容器状态有多种，此处处理不完善
-	// if c.State == "exited" && "stop" == string(ret) {
-	// 	err := s.delete(s.OpBucket, []byte(c.ID))
-	// 	if err != nil {
-	// 		return errors.WithStack(err)
-	// 	}
-	// } else if c.State == "running" && "start" == string(ret) {
-	// 	err := s.delete(s.OpBucket, []byte(c.ID))
-	// 	if err != nil {
-	// 		return errors.WithStack(err)
-	// 	}
-	// } else {
-	// 	c.State = string(ret) + "ing"
-	// }
-	// }
-	csbs, err := json.Marshal(cs)
+	csBytes, err := json.Marshal(cs)
 	if err != nil {
 		return errors.Wrapf(err, "list container failed")
 	}
-	return s.put(s.containerBucket, []byte(ContainerListKey), csbs)
+	return s.put(s.containerBucket, []byte(ContainerListKey), csBytes)
 }
 
 func (s *Service) updateContainerStats() error {
