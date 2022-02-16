@@ -59,13 +59,25 @@ func containerSSH(c *gin.Context) {
 		hr.Conn.Write([]byte("exit\r"))
 	}()
 
+	termStopCh := make(chan int)
+	browserCloseCh := make(chan int)
 	// 转发输入/输出至websocket
 	go func() {
 		// 将伪终端的输出转发到前端
-		wsWriterCopy(hr.Conn, conn)
+		forwardExecToBrowser(hr.Conn, conn, termStopCh)
 	}()
-	// 将前端输入拷贝到伪终端
-	wsReaderCopy(conn, hr.Conn)
+
+	go func() {
+		// 将前端输入拷贝到伪终端
+		forwardBrowserToExec(conn, hr.Conn, browserCloseCh)
+	}()
+	// 当浏览器或者term 中断， 关闭当前websocket
+	select {
+	case <-termStopCh:
+		return
+	case <-browserCloseCh:
+		return
+	}
 }
 
 // 开启container exec 并附加到/bin/sh上
@@ -92,34 +104,45 @@ func exec(container string) (hr types.HijackedResponse, err error) {
 }
 
 // 将终端的输出转发到前端
-func wsWriterCopy(reader io.Reader, writer *websocket.Conn) {
+//  reader exec终端的连接reader
+func forwardExecToBrowser(reader io.Reader, writer *websocket.Conn, flagCh chan int) {
 	buf := make([]byte, 8192)
 	for {
 		nr, err := reader.Read(buf)
 		if nr > 0 {
 			err := writer.WriteMessage(websocket.BinaryMessage, buf[0:nr])
 			if err != nil {
+				logrus.Errorf("%+v", errors.Wrap(err, "write msg to browser failed"))
+				flagCh <- 1
 				return
 			}
 		}
 		if err != nil {
+			// 终端关闭
+			if err != io.EOF {
+				logrus.Errorf("%+v", errors.WithStack(err))
+			}
+			flagCh <- 1
 			return
 		}
 	}
 }
 
 // 将前端的输入转发到终端
-func wsReaderCopy(reader *websocket.Conn, writer io.Writer) {
-	defer func() {
-		if r := recover(); r != nil {
-			logrus.Errorf("wsReade人Copy recovery %+v", r)
-		}
-	}()
+// 当前端输入
+func forwardBrowserToExec(reader *websocket.Conn, writer io.Writer, flagCh chan int) {
 	for {
 		_, p, err := reader.ReadMessage()
 		if err != nil {
+			logrus.Errorf("%+v", errors.Wrap(err, "read browser msg failed"))
+			flagCh <- 1
 			return
 		}
-		writer.Write(p)
+		_, err = writer.Write(p)
+		if err != nil {
+			logrus.Errorf("%+v", errors.Wrap(err, "write cmd to container exec failed"))
+			flagCh <- 1
+			return
+		}
 	}
 }
