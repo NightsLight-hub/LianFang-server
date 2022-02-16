@@ -87,9 +87,8 @@ func exec(container string) (hr types.HijackedResponse, err error) {
 		AttachStdin:  true,
 		AttachStdout: true,
 		AttachStderr: true,
-		// todo alpine 没有/bin/bash吧
-		Cmd: []string{"/bin/sh"},
-		Tty: true,
+		Cmd:          []string{"/bin/sh"},
+		Tty:          true,
 	})
 	if err != nil {
 		return

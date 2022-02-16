@@ -8,9 +8,9 @@ import (
 	"path/filepath"
 )
 
-//压缩文件或文件夹，输出到压缩文件
-//files 文件数组，可以是不同dir下的文件或者文件夹
-//dest 压缩文件存放地址
+// 压缩文件或文件夹，输出到压缩文件
+// files 文件数组，可以是不同dir下的文件或者文件夹
+// dest 压缩文件存放地址
 func ZipCompressToFile(files []*os.File, dest string, progressReceiver ...io.Writer) error {
 	d, _ := os.Create(dest)
 	defer d.Close()
@@ -22,9 +22,9 @@ func ZipCompressToFile(files []*os.File, dest string, progressReceiver ...io.Wri
 	return nil
 }
 
-//压缩文件或文件夹，输出到指定的 writer
-//files 文件数组，可以是不同dir下的文件或者文件夹
-//writer 压缩文件输出目的地
+// 压缩文件或文件夹，输出到指定的 writer
+// files 文件数组，可以是不同dir下的文件或者文件夹
+// writer 压缩文件输出目的地
 func ZipCompressToWriter(files []*os.File, writer io.Writer, progressReceiver ...io.Writer) error {
 	archive := zip.NewWriter(writer)
 	defer archive.Close()
@@ -88,7 +88,7 @@ func zipCompress(file *os.File, prefix string, archive *zip.Writer, progressRece
 	return nil
 }
 
-//解压
+// 解压
 func ZipDecompress(zipFile, dest string, progressReceiver ...io.Writer) error {
 	reader, err := zip.OpenReader(zipFile)
 	if err != nil {
@@ -97,7 +97,6 @@ func ZipDecompress(zipFile, dest string, progressReceiver ...io.Writer) error {
 	defer reader.Close()
 	for _, file := range reader.File {
 		filename := filepath.Join(dest, file.Name)
-		// TODO 反馈解压进度
 		fmt.Println(file.Name + "->" + filename)
 		if file.FileInfo().IsDir() {
 			err = os.MkdirAll(filename, 0755)

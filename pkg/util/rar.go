@@ -10,8 +10,7 @@ import (
 	"strings"
 )
 
-// TODO ierr         发送所有压缩文档到 stderr
-//rar压缩
+// rar压缩
 func RarCompress(files []*os.File, dest string, progressReceiver ...io.Writer) error {
 	d, _ := os.Create(dest)
 	defer d.Close()
@@ -24,41 +23,11 @@ func RarCompress(files []*os.File, dest string, progressReceiver ...io.Writer) e
 	return nil
 }
 
-// TODO rar压缩
 func rarCompress(file *os.File, prefix string, dest *os.File, progressReceiver ...io.Writer) error {
-	// info, err := file.Stat()
-	// if err != nil {
-	// 	return err
-	// }
-	// if info.IsDir() {
-	// 	prefix = prefix + "/" + info.Name()
-	// 	fileInfos, err := file.Readdir(-1)
-	// 	if err != nil {
-	// 		return err
-	// 	}
-	// 	for _, fi := range fileInfos {
-	// 		// TODO
-	// 	}
-	// } else {
-	// 	header, err := tar.FileInfoHeader(info, "")
-	// 	header.Name = prefix + "/" + header.Name
-	// 	if err != nil {
-	// 		return err
-	// 	}
-	// 	err = tw.WriteHeader(header)
-	// 	if err != nil {
-	// 		return err
-	// 	}
-	// 	_, err = io.Copy(tw, file)
-	// 	file.Close()
-	// 	if err != nil {
-	// 		return err
-	// 	}
-	// }
 	return nil
 }
 
-//解压 rar
+// 解压 rar
 func RarDecompress(rarFile, dest string, progressReceiver ...io.Writer) error {
 
 	fileInfo, err := os.Stat(rarFile)
@@ -94,7 +63,6 @@ func rarX(rarFile, dest string, progressReceiver ...io.Writer) error {
 	logrus.Debug(rarX, rarFile, dest)
 	output, err := exec.Command(rarX, rarFile, dest).CombinedOutput()
 	out := string(output)
-	// TODO 反馈解压进度
 	logrus.Info(out)
 	if err != nil {
 		return errors.WithStack(err)

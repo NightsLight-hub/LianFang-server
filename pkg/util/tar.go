@@ -8,7 +8,7 @@ import (
 	"path/filepath"
 )
 
-//压缩 使用gzip压缩成tar.gz
+// 压缩 使用gzip压缩成tar.gz
 func TarCompress(files []*os.File, dest string, progressReceiver ...io.Writer) error {
 	d, _ := os.Create(dest)
 	defer d.Close()
@@ -23,9 +23,9 @@ func TarCompress(files []*os.File, dest string, progressReceiver ...io.Writer) e
 	return nil
 }
 
-//压缩文件或文件夹，输出到指定的 writer
-//files 文件数组，可以是不同dir下的文件或者文件夹
-//writer 压缩文件输出目的地
+// 压缩文件或文件夹，输出到指定的 writer
+// files 文件数组，可以是不同dir下的文件或者文件夹
+// writer 压缩文件输出目的地
 func TarCompressToWriter(files []*os.File, writer io.Writer, progressReceiver ...io.Writer) error {
 	tw := tar.NewWriter(writer)
 	defer tw.Close()
@@ -87,7 +87,7 @@ func tarCompress(file *os.File, prefix string, tw *tar.Writer, progressReceiver 
 	return nil
 }
 
-//解压 tar.gz
+// 解压 tar.gz
 func TarDecompress(tarFile, dest string, progressReceiver ...io.Writer) error {
 	srcFile, err := os.Open(tarFile)
 	if err != nil {
@@ -105,7 +105,6 @@ func TarDecompress(tarFile, dest string, progressReceiver ...io.Writer) error {
 			}
 		}
 		filename := filepath.Join(dest, hdr.Name)
-		// TODO 反馈解压进度
 		fmt.Println(hdr.Name + "->" + filename)
 		if hdr.FileInfo().IsDir() {
 			err = os.MkdirAll(filename, 0755)
